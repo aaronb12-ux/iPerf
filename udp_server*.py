@@ -1,28 +1,41 @@
 import socket
+import time
 
 HOST = "127.0.0.1"  #Standard loopback interface address (localhost)
 PORT = 6000
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 8192 #number of bytes we receive in each call
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 s.bind((HOST, 6000))
 
-
 print(f"UDP server up and listening on {HOST} : {PORT}")
+
+data, addr = s.recvfrom(8192)
+start = time.perf_counter()
+totalBytes = 0
 
 while True:
     #waiting for incoming packets
-    try:
-        data, address = s.recvfrom(BUFFER_SIZE) #receiving data from the client
-        message = data.decode()
-        
-        print(f"Received from {address}: {message}")
 
-        s.sendto(b"ACK", address)
+    if data == b"__END__": #stop receiving
+        break
 
-    except Exception as e:
-        print("Error:", e)
+    totalBytes += len(data)
+
+    data, addr = s.recvfrom(8192)
+
+end = time.perf_counter()
+print(f"Bytes received: {totalBytes}")
+
+totalTime = end - start
+kb = totalBytes / 1024
+
+throughput = kb / totalTime
+backtoClient = f"Throughput: {throughput:.2f} KB/s"
+
+s.sendto(backtoClient.encode(), addr)
+
 
 
 '''
